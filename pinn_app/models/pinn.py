@@ -165,10 +165,16 @@ class SIRENLayer(nn.Module):
 
 
 class SIREN(nn.Module):
-    """SIREN: y = sin(w0 * W_N * ... * sin(w0 * W_1 x + b_1) ...)
+    """SIREN (Sitzmann et al. 2020) - hybrid 频率配置.
 
-    - 所有阶导数都是 sin/cos 组合 -> 对 Helmholtz 二阶导非常友好.
-    - w0 越大频率越高, 声场经验 w0=15~30.
+    - 首层 w0 = w0_first (大), 让网络快速捕获输入空间的多频结构.
+    - 后续层 w0 = w0_hidden (默认 1.0), 让网络自适应学习内部频率,
+      避免高 w0 带来的 PDE 残差爆炸 + 常数解陷阱.
+    - 输出层用普通 Xavier 初始化 (它是无 sin 的线性层).
+
+    经验:
+        声场 (波数 k≈8 归一化后) 推荐 w0_first ∈ [10, 20].
+        过大 (w0_first=30) 容易让 PDE loss 数值爆炸 -> 网络塌缩为常数.
     """
 
     def __init__(
@@ -177,33 +183,39 @@ class SIREN(nn.Module):
         num_neurons: int = 128,
         in_dim: int = 2,
         out_dim: int = 2,
-        w0: float = 30.0,
-        w0_first: float = 30.0,
+        w0_first: float = 15.0,
+        w0_hidden: float = 1.0,
+        output_scale: float = 1.0,
     ):
         super().__init__()
         self.num_layers = int(num_layers)
         self.num_neurons = int(num_neurons)
-        self.w0 = float(w0)
+        self.w0_first = float(w0_first)
+        self.w0_hidden = float(w0_hidden)
+        self.output_scale = float(output_scale)
 
-        layers: List[nn.Module] = [SIRENLayer(in_dim, num_neurons, is_first=True, w0=w0_first)]
+        layers: List[nn.Module] = [
+            SIRENLayer(in_dim, num_neurons, is_first=True, w0=w0_first)
+        ]
         for _ in range(num_layers - 1):
-            layers.append(SIRENLayer(num_neurons, num_neurons, is_first=False, w0=w0))
-        # 线性输出层 (不带 sin)
+            layers.append(SIRENLayer(num_neurons, num_neurons,
+                                     is_first=False, w0=w0_hidden))
         self.hidden = nn.Sequential(*layers)
+
+        # 输出层: 普通 Linear, 用标准 Xavier 初始化
         self.out_layer = nn.Linear(num_neurons, out_dim)
-        with torch.no_grad():
-            bound = math.sqrt(6.0 / num_neurons) / w0
-            self.out_layer.weight.uniform_(-bound, bound)
-            if self.out_layer.bias is not None:
-                self.out_layer.bias.zero_()
+        nn.init.xavier_uniform_(self.out_layer.weight)
+        if self.out_layer.bias is not None:
+            nn.init.zeros_(self.out_layer.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.out_layer(self.hidden(x))
+        return self.output_scale * self.out_layer(self.hidden(x))
 
     def summary(self) -> str:
         n = sum(p.numel() for p in self.parameters())
         return (f"SIREN(layers={self.num_layers}, neurons={self.num_neurons}, "
-                f"w0={self.w0}, params={n})")
+                f"w0_first={self.w0_first}, w0_hidden={self.w0_hidden}, "
+                f"out_scale={self.output_scale}, params={n})")
 
 
 # =========================================================================== #
@@ -329,8 +341,11 @@ def build_pinn(
             mapping_size=mapping_size, sigma=fourier_sigma, activation=activation,
         )
     elif nt == "siren":
-        model = SIREN(num_layers=num_layers, num_neurons=num_neurons,
-                      w0=siren_w0, w0_first=siren_w0)
+        # 论文 hybrid 配置: 首层 w0=siren_w0 大频率, 后续层 w0=1.0 让网络自学习频率.
+        model = SIREN(
+            num_layers=num_layers, num_neurons=num_neurons,
+            w0_first=siren_w0, w0_hidden=1.0, output_scale=1.0,
+        )
     elif nt in ("modified", "modified_mlp", "mmlp"):
         model = ModifiedMLP(num_layers=num_layers, num_neurons=num_neurons, activation=activation)
     else:

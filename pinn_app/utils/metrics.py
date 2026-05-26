@@ -62,3 +62,39 @@ def compute_all_metrics(
         f"{prefix}max_err": compute_max_error(pred, true),
         f"{prefix}corr": compute_correlation(pred, true),
     }
+
+
+def compute_regional_rmse(
+    pred: np.ndarray,
+    true: np.ndarray,
+    X: np.ndarray,
+    Z: np.ndarray,
+    source_r: float,
+    source_z: float,
+    near: float = 150.0,
+    mid: float = 300.0,
+) -> Dict[str, float]:
+    """按距源距离分 near/mid/far 三档分别计算 RMSE.
+
+    与 stratified_block 采样的分层一致, 便于论文 Table 中报告
+    "近场 / 中场 / 远场 RMSE".
+    """
+    pred = np.asarray(pred); true = np.asarray(true)
+    d = np.sqrt((X - source_r) ** 2 + (Z - source_z) ** 2)
+    near_mask = d < near
+    mid_mask = (d >= near) & (d < mid)
+    far_mask = d >= mid
+
+    def _rmse_masked(m: np.ndarray) -> float:
+        if not m.any():
+            return float("nan")
+        return float(np.sqrt(np.mean((pred[m] - true[m]) ** 2)))
+
+    return {
+        "near_rmse": _rmse_masked(near_mask),
+        "mid_rmse":  _rmse_masked(mid_mask),
+        "far_rmse":  _rmse_masked(far_mask),
+        "near_count": int(near_mask.sum()),
+        "mid_count":  int(mid_mask.sum()),
+        "far_count":  int(far_mask.sum()),
+    }

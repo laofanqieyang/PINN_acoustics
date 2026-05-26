@@ -1,0 +1,122 @@
+================================================================================
+  PINN 水下声场训练平台 — Streamlit 启动流程说明
+  项目路径: D:\lzz\Auto_train_PINN
+  主程序:   pinn_app\app.py
+================================================================================
+
+一、环境要求
+--------------------------------------------------------------------------------
+  1. Python 3.9+（推荐 conda 环境 gpu_pytorch，已安装 CUDA 版 PyTorch）
+  2. 依赖见项目根目录 requirements.txt
+  3. 训练数据 CSV（pres_real.csv / pres_imag.csv）路径在界面侧边栏配置
+
+
+二、首次使用 — 安装依赖
+--------------------------------------------------------------------------------
+  打开 PowerShell 或 Anaconda Prompt，进入项目目录:
+
+    cd D:\lzz\Auto_train_PINN
+
+  方式 A — 已激活 conda 环境时:
+
+    pip install -r requirements.txt
+
+  方式 B — 指定 conda 环境 Python（示例路径，请按本机修改）:
+
+    & C:\Users\hipeson\.conda\envs\gpu_pytorch\python.exe -m pip install -r requirements.txt
+
+  GPU 版 PyTorch 若未安装，请先到 https://pytorch.org 按本机 CUDA 版本安装。
+
+
+三、启动 Streamlit（推荐命令）
+--------------------------------------------------------------------------------
+  1. 进入项目根目录:
+
+    cd D:\lzz\Auto_train_PINN
+
+  2. 启动 Web 界面（任选一种）:
+
+  【方式 1】系统 PATH 中已有 streamlit:
+
+    streamlit run pinn_app/app.py --server.port 8501 --server.fileWatcherType none
+
+  【方式 2】使用 conda 环境 Python（推荐，避免 PATH 混乱）:
+
+    & C:\Users\hipeson\.conda\envs\gpu_pytorch\python.exe -m streamlit run pinn_app/app.py --server.port 8501 --server.fileWatcherType none
+
+  【方式 3】无头模式（仅后台服务，不自动弹浏览器）:
+
+    & C:\Users\hipeson\.conda\envs\gpu_pytorch\python.exe -m streamlit run pinn_app/app.py --server.port 8501 --server.fileWatcherType none --server.headless true
+
+  参数说明:
+    --server.port 8501          固定端口，便于书签访问
+    --server.fileWatcherType none
+                                关闭文件监视，避免 PyTorch≥2.5 与 Streamlit 的兼容警告
+    --server.headless true      可选，服务器/远程场景使用
+
+
+四、访问地址
+--------------------------------------------------------------------------------
+  启动成功后，终端会显示类似信息:
+
+    Local URL:    http://localhost:8501
+    Network URL:  http://<本机局域网IP>:8501
+
+  在浏览器中打开 Local URL 即可使用。
+  同一局域网内其他设备可使用 Network URL 访问（需防火墙放行 8501 端口）。
+
+
+五、界面使用简要流程
+--------------------------------------------------------------------------------
+  1. 左侧边栏 — 填写数据路径、空间参数 (length/depth/nx/nz)、网络与训练超参
+  2. 「数据预览」— 确认 CSV 读入与真实声场显示正常
+  3. 「训练 & 监控」— 点击「开始训练」，按 visualize_interval 自动刷新曲线与声场
+  4. 「迁移学习」（可选）— 配置预训练 .pt 路径后，回到训练页继续微调
+  5. 「实验对比」— 对比 outputs 下历史实验的 RMSE 与耗时
+
+  训练结果默认保存至: outputs\<experiment_name>\
+
+
+六、停止与重启服务
+--------------------------------------------------------------------------------
+  【停止】在运行 Streamlit 的终端窗口按 Ctrl+C。
+
+  【端口被占用】若提示 "Port 8501 is already in use":
+    (1) 直接浏览器访问 http://localhost:8501 ，可能已有实例在运行;
+    (2) 或查找并结束占用进程后重新启动:
+
+        netstat -ano | findstr ":8501"
+        taskkill /PID <进程号> /F
+
+    然后重新执行第三节启动命令。
+
+  【修改代码后生效】保存代码后，在浏览器中点击 Streamlit 右上角
+  「Rerun」或「Always rerun」；若异常可 Ctrl+C 停止后重新启动。
+
+
+七、常见问题
+--------------------------------------------------------------------------------
+  Q: 提示找不到 streamlit?
+  A: 使用「方式 2」的 python.exe -m streamlit run ... 确保在正确 conda 环境中。
+
+  Q: 训练很慢或不用 GPU?
+  A: 侧边栏「计算设备」选 cuda；确认 torch.cuda.is_available() 为 True。
+
+  Q: ModuleNotFoundError: pinn_app?
+  A: 必须在项目根目录 D:\lzz\Auto_train_PINN 下执行 streamlit run，不要 cd 到 pinn_app 内。
+
+  Q: 页面空白或报错?
+  A: 查看终端完整报错；检查 CSV 路径、nx/nz 是否与数据文件形状一致。
+
+
+八、一键启动示例（可复制到 .bat 或 PowerShell 脚本）
+--------------------------------------------------------------------------------
+  @echo off
+  cd /d D:\lzz\Auto_train_PINN
+  C:\Users\hipeson\.conda\envs\gpu_pytorch\python.exe -m streamlit run pinn_app/app.py --server.port 8501 --server.fileWatcherType none
+  pause
+
+================================================================================
+  更多功能说明见同目录 README.md
+  文档更新日期: 2026-05-20
+================================================================================

@@ -1,26 +1,50 @@
-from .metrics import compute_rmse, compute_mae, compute_relative_l2, compute_all_metrics
+from .metrics import (
+    compute_rmse, compute_mae, compute_relative_l2,
+    compute_all_metrics, compute_regional_rmse,
+)
 from .visualization import (
     setup_chinese_font,
+    setup_publication_style,
+    save_figure_publication,
     plot_field,
     plot_loss_curve,
     plot_individual_losses,
     plot_error_map,
+    plot_error_map_multi_scale,
     plot_profile_comparison,
     plot_pde_residual,
+    plot_sampling_distribution,
+    plot_sampling_methods_panel,
+    plot_time_vs_step,
+    plot_step_time_per_iter,
+    plot_loss_vs_time,
+    plot_pred_vs_true_scatter,
 )
 from .logger import TrainingLogger
+from .excel_logger import save_parameters_xlsx
 
 __all__ = [
     "compute_rmse",
     "compute_mae",
     "compute_relative_l2",
     "compute_all_metrics",
+    "compute_regional_rmse",
     "setup_chinese_font",
+    "setup_publication_style",
+    "save_figure_publication",
     "plot_field",
     "plot_loss_curve",
     "plot_individual_losses",
     "plot_error_map",
+    "plot_error_map_multi_scale",
     "plot_profile_comparison",
     "plot_pde_residual",
+    "plot_sampling_distribution",
+    "plot_sampling_methods_panel",
+    "plot_time_vs_step",
+    "plot_step_time_per_iter",
+    "plot_loss_vs_time",
+    "plot_pred_vs_true_scatter",
     "TrainingLogger",
+    "save_parameters_xlsx",
 ]

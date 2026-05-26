@@ -58,19 +58,26 @@ class TrainingLogger:
         paths = {}
         if self.loss_history:
             p = self.log_dir / "loss_history.csv"
-            self.loss_df().to_csv(p, index=False)
+            self.loss_df().to_csv(p, index=False, encoding="utf-8")
             paths["loss"] = str(p)
         if self.metric_history:
             p = self.log_dir / "metric_history.csv"
-            self.metric_df().to_csv(p, index=False)
+            self.metric_df().to_csv(p, index=False, encoding="utf-8")
             paths["metric"] = str(p)
         if self.events:
             p = self.log_dir / "events.json"
-            p.write_text(json.dumps(self.events, ensure_ascii=False, indent=2))
+            # 显式 utf-8 编码 (Windows 默认 GBK 不能写中文)
+            p.write_text(
+                json.dumps(self.events, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
             paths["events"] = str(p)
         return paths
 
     def save_config(self, config_dict: Dict[str, Any]) -> str:
         p = self.log_dir / "config.json"
-        p.write_text(json.dumps(config_dict, ensure_ascii=False, indent=2, default=str))
+        p.write_text(
+            json.dumps(config_dict, ensure_ascii=False, indent=2, default=str),
+            encoding="utf-8",
+        )
         return str(p)
